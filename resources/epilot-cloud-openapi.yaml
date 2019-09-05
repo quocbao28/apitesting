@@ -1,0 +1,1060 @@
+openapi: 3.0.2
+info:
+  title: epilot API 
+  description: This describes the resources that make up the official epilot REST API v1. If you have any question, problems or requests, please contact epilot support.
+  termsOfService: "http://epilot.cloud/terms/"
+  contact:
+    email: support@epilot.cloud
+  license:
+    name: Apache 2.0
+    url: "http://www.apache.org/licenses/LICENSE-2.0.html"
+  version: 1.0.0
+externalDocs:
+  description: Find out more about epilot
+  url: "http://go.epilot.cloud"
+servers:
+  - url: "https://api.epilot.cloud/v1"
+  - url: "http://api.epilot.cloud/v1"
+tags:
+  - name: epilot
+    description: epilot APIs
+    externalDocs:
+      description: Find out more
+      url: "http://go.epilot.cloud"
+paths:
+  /opportunities/{opportunityId}:
+    get:
+      tags:
+        - Opportunity
+      summary: Get an opportunity by ID.
+      description: Returns the full content of the opportunity with the specified ID of an organization.
+      operationId: getOpportunityById
+      parameters:
+        - in: header
+          name: Organization-Id
+          schema:
+            type: integer
+            format: int64
+          description: ID of the organization that the user logged in belongs to.
+        - name: opportunityId
+          in: path
+          required: true
+          description: The ID of the opportunity to return for an organization.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: An opportunity object.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+        '400':
+          description: Bad request - generic/unknown error. Should also be delivered in case of input payload fails business logic validation.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+        '404':
+          description: Not found - the resource is not found.
+        default:
+          description: Unexpected error.
+  /opportunities:
+    post:
+      tags:
+        - Opportunity
+      summary: Create a new opportunity
+      operationId: createOpportunity
+      requestBody:
+        description: Opportunity object that needs to be added
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Opportunity"
+        required: true
+      parameters:
+        - in: header
+          name: Organization-Id
+          schema:
+            type: integer
+            format: int64
+          description: ID of the organization that the user logged in belongs to.
+      responses:
+        '201':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+        '400':
+          description: Bad request - generic/unknown error. Should also be delivered in case of input payload fails business logic validation.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+        '404':
+          description: Not found - the resource is not found.
+        default:
+          description: Unexpected error.
+        "405":
+          description: Invalid input
+          content: {}
+
+  /opportunities/{opportunityId}/attachments:
+    post:
+      tags:
+        - Opportunity
+      summary: Add attachments to an opportunity
+      operationId: addAttachments
+      parameters:
+        - in: header
+          name: Organization-Id
+          description: Id of the organization that the user logged in belongs to
+          schema:
+            type: integer
+            example: 2000
+        - in: path
+          name: opportunityId
+          description: Opportunity id that the attachments belongs to
+          required: true
+          schema:
+            type: string
+            example: 1000
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/AttachmentsForm'
+      responses:
+        '201':
+          description: Added attachments successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+              example:
+                code: 4
+                type: ok
+                message: Added attachments successfully
+        '207':
+          description: Some attachments are added successfully, some are not.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+              example:
+                code: 4
+                type: ok
+                message: File 'large_file.txt' is larger than 10MB  
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+               $ref: '#/components/schemas/ApiResponse'
+              example:
+                code: 1
+                type: error
+                message: Missing Organization-Id parameter!
+        '401':
+          description: Unauthorized
+        '404':
+          description: Not found
+        '405': 
+          description: Method Not Allowed
+        '500':
+          description: Internal error
+          content:
+            application/json:
+              schema:
+               $ref: '#/components/schemas/ApiResponse'
+              example:
+                code: 1
+                type: error
+                message: The service is not available
+
+  /opportunities/{symbolId}/dates:
+    post:
+      tags:
+        - Opportunity
+      summary: Add custom date label to opportunity
+      operationId: addCustomDateLabel
+      parameters:
+        - in: header
+          name: Organization-Id
+          description: Id of the organization that the user logged in belongs to
+          required: true
+          schema:
+            type: integer
+            format: int64
+            example: 2000
+        - in: path
+          name: symbolId
+          description: Opportunity symbol id
+          required: true
+          schema:
+            type: string
+            example: TUV-672
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OpportunityCustomLabel'
+        required: true
+      responses:
+        '201':
+          description: Added date label successfully
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /opportunities/{symbolId}/dates/{customDateId}:
+    put:
+      tags:
+        - Opportunity
+      summary: Update custom date of opportunity
+      description: 'This API serves 2 purposes corresponding to provided JSON property: <br />
+                    - Update custom date label: request JSON must contain only "label".<br/> 
+                    - Update custom date value: request JSON must contain only "date". In case both "label" and "date" is not provided, date value will be updated to NULL.<br/>'
+      operationId: updateCustomDate
+      parameters:
+        - in: header
+          name: Organization-Id
+          description: Id of the organization that the user logged in belongs to
+          required: true
+          schema:
+            type: integer
+            format: int64
+            example: 2000
+        - in: path
+          name: symbolId
+          description: Opportunity symbol id
+          required: true
+          schema:
+            type: string
+            example: TUV-672
+        - in: path
+          name: customDateId
+          description: Custom date id
+          required: true
+          schema:
+            type: integer
+            format: int64
+            example: 67483
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OpportunityCustomDate'
+        required: true
+      responses:
+        '204':
+          description: Updated date successfully
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+    delete:
+      tags:
+        - Opportunity
+      summary: Delete custom date from opportunity
+      operationId: deleteCustomDate
+      parameters:
+        - in: header
+          name: Organization-Id
+          description: Id of the organization that the user logged in belongs to
+          required: true
+          schema:
+            type: integer
+            format: int64
+            example: 2000
+        - in: path
+          name: symbolId
+          description: Opportunity symbol id
+          required: true
+          schema:
+            type: string
+            example: TUV-672
+        - in: path
+          name: customDateId
+          description: Custom date id
+          required: true
+          schema:
+            type: integer
+            format: int64
+            example: 67483
+      responses:
+        '204':
+          description: Deleted date successfully
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /opportunities/{symbolId}/packages/{packageId}/custom-fields:
+      patch:
+        tags:
+          - Opportunity
+        summary: Update custom field of a package in an opportunity.
+        operationId: updatePackageFieldById
+        parameters:
+          - in: header
+            name: Organization-Id
+            description: Id of the organization that the user logged in belongs to
+            required: true
+            schema:
+              type: integer
+              format: int64
+              example: 2000
+          - name: symbolId
+            in: path
+            required: true
+            description: The symbol id of the opportunity to be updated.
+            schema:
+              type: string
+          - name: packageId
+            in: path
+            required: true
+            description: The id of the package in the opportunity to be updated.
+            schema:
+              type: integer
+              format: int64
+              example: 3000
+        requestBody:
+          content:
+            application/json:
+              schema:
+                type: array
+                items: 
+                  $ref: '#/components/schemas/OpportunityPackageCustomField'  
+          required: true
+        responses:
+          '204':
+            description: Update package custom field successfully
+          '400':
+            $ref: '#/components/responses/BadRequest'
+          '401':
+            $ref: '#/components/responses/Unauthorized'
+          '404':
+            $ref: '#/components/responses/NotFound'
+          '500':
+            $ref: '#/components/responses/InternalError'         
+
+  /organization/geodata/:
+    post:
+      tags:
+        - Organization
+      summary: Upload geodata information for the authenticated organization. The geodata is used, for example, to auto-complete address information in the frontends.
+      operationId: uploadGeodata
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                filetype:
+                  type: string
+                  enum:
+                    - ZIP
+                    - CSV
+                fileName:
+                  type: string
+                  description: Name of the file to upload
+                  format: binary
+                additionalMetadata:
+                  type: string
+                  description: Additional meta data to pass to server
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+        '404':
+          description: The requested resource doesn't exist.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+  /auth:
+    post:
+      tags: 
+        - Authentication
+      summary: Obtain access token by providing user credentials
+      operationId: getAccessToken
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/AuthForm'
+      responses:
+        '200':
+          description: Authenticated successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessfulAuthResponse"
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedAuthResponse"
+              example:
+                error: invalid_request
+                error_description: 'Missing form parameter: grant_type'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailedAuthResponse" 
+              example:
+                error: invalid_grant
+                error_description: Invalid user credentials
+components:
+  schemas:
+    Opportunity:
+      type: object
+      description: Opportunity of a product
+      required:
+        - title
+        - product_id
+        - customer_id
+      properties:
+        title:
+          description: Title of the opportunity.
+          type: string
+          example: Opportunity for John Doe.
+        customer_id:
+          description: ID of the customer this opportunity will be associated with, either a private contact or an account.
+          type: integer
+          format: int64
+          example: 3432
+        product_id:
+          description: ID of the associated product.
+          type: integer
+          format: int64
+          example: 1238
+        product_package_id:
+          description: ID of the associated package of the product.
+          type: integer
+          format: int64
+          example: 3432
+        assignee_id:
+          description: ID of the user who will be marked as the assignee of this opportunity. If omitted, the the ID will left blank.
+          type: integer
+          format: int64
+          example: 1234
+        description:
+          description: Description of the opportunity.
+          type: string
+          example: The customer John Doe is interested in the premium version of this product.
+
+    ApiResponse:
+      type: object
+      properties:
+        code:
+          type: integer
+          format: int32
+        type:
+          type: string
+        message:
+          type: string
+        data:
+          type: object
+          oneOf:
+          - $ref: "#/components/schemas/OpportunityResponse"
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            message:
+              description: Describe the cause of failure
+              type: string
+            type:
+              description: Kind of exception
+              type: string
+            code:
+              description: An integer for failure category
+              type: integer
+
+    AuthForm:
+      type: object
+      description: Authentication data form
+      required:
+        - user_name
+        - password
+        - client_id
+        - grant_type
+      properties:
+        user_name:
+          description: User name
+          type: string
+          example: user_wwn
+        password:
+          description: Password
+          type: string
+          example: ErFlUSePtio
+        client_id:
+          description: Client id
+          type: string
+          example: client-authorizer
+        grant_type:
+          description: Grant type
+          type: string
+          example: password
+    SuccessfulAuthResponse:
+      type: object
+      description: Successful authentication response
+      properties:
+        access_token:
+          description: Access token
+          type: string
+          example: dtVUs4ENZ2TPewplD8T5
+        expires_in:
+          description: Access token's expired time in second
+          type: integer
+          format: int32
+          example: 1800
+        refresh_expires_in:
+          description: Access token's referesh time in second
+          type: integer
+          format: int32
+          example: 1800         
+        refresh_token:
+          description: Refresh token
+          type: string
+          example: p0qU93ouBN6llg7iT1X8
+        token_type:
+          description: Token type
+          type: string 
+          example: bearer
+        not-before-policy:
+          description: Not before policy
+          type: integer
+          format: int32
+          example: 0
+        session_state:
+          description: Session state
+          type: string
+          example: cea4a55-9aec-4024-b11c-44f6f168439e
+        scope:
+          description: Scope
+          type: string
+          example: email profile                  
+    FailedAuthResponse:
+      type: object
+      description: Failed authentication response
+      properties:
+        error:
+          description: Type of the error
+          type: string
+        error_description:
+          description: Description of the error
+          type: string
+    AttachmentsForm:
+      type: object
+      required:
+        - attachments
+        - visibility_type
+      properties:
+        uploads:
+          description: List of file upload
+          type: array
+          items:
+            type: string
+            format: binary
+        files:
+          description: List of stored file id
+          type: array
+          items:
+            type: integer
+          example: 2, 3
+        pdf_templates:
+          description: List of stored templates id which you want to generate as pdf
+          type: array
+          items:
+            type: integer
+          example: 3, 5
+        docx_templates:
+          description: List of stored templates id which you want to generate as docx
+          type: array
+          items:
+            type: integer
+          example: 4
+        labels:
+          description: List of labels id
+          type: array
+          items:
+            type: integer
+          example: 12, 11
+        visibility_type:
+          type: integer
+          description: 'Visibility type: <br /> 
+                      &nbsp; 2: RESTRICTED - The attachments are visible to restricted list of organizations <br /> 
+                      &nbsp; 3: PRIVATE - The attachments are only visible to owner <br /> 
+                      &nbsp; 4: PUBLIC - The attachments are visible to all organizations'
+          enum:
+            - 2
+            - 3
+            - 4
+          example: 2
+        restricted_to:
+          type: array
+          items:
+            type: integer
+          description: Comma separated list of organization ids that the attachments are visible to. <br />
+                       <i>This value is required when visibility_type = 2 (RESTRICTED).</i>
+          example: 1700, 1701, 1702
+
+    OpportunityResponse:
+      type: object
+      description: Opportunity of a product
+      required:
+        - title
+        - product_id
+      properties:
+        opportunity_id:
+          description: Id of the opportunity
+          type: string
+          example: EP-001
+        title:
+          description: Title of the opportunity
+          type: string
+          example: Standard package Medium for John Doe
+        description:
+          type: string
+          description: Description of the opportunity
+          example: Order 1 Solar S from Customer Michael 2019
+        owner_organization:
+          $ref: "#/components/schemas/OrganizationResponse"
+        customer:
+          $ref: "#/components/schemas/CustomerResponse"
+        addresses:
+          type: object
+          properties:
+            delivery_address:
+              $ref: '#/components/schemas/AddressResponse'
+            billing_address:
+              $ref: '#/components/schemas/AddressResponse'
+        pricing_items:
+          type: object
+          description: List of all pricing items of an opportunity.
+          properties:
+            packages:
+              type: array
+              items:
+                $ref: '#/components/schemas/ProductPackageResponse'
+            addons:
+              type: array
+              items:
+                $ref: '#/components/schemas/AddOnResponse'
+            individual_adjustments:
+              type: array
+              items:
+                $ref: '#/components/schemas/IndividualAdjustmentResponse'
+        dates:
+          description: Dates defined on an opportunity
+          type: array
+          items:
+            $ref: '#/components/schemas/DateResponse'
+
+    OrganizationResponse:
+      type: object
+      description: Organization description.
+      required:
+        - id
+        - name
+      properties:
+        organization_id:
+          description: Unique id of an organization
+          type: integer
+          format: int64
+          example: 3421
+        organization_name:
+          description: Unique id of an organization
+          type: string
+          example: Company Ltd.
+        organization_website:
+          description: Website of an organization
+          type: string
+          example: www.company.com
+        organization_email:
+          description: Email address of of an organization
+          type: string
+          example: info@company.com
+
+    CustomerResponse:
+      type: object
+      description: Customer information. Can be a private contact or a business account.
+      properties:
+        type:
+          description: Type of customer.
+          type: string
+          enum:
+            - contact
+            - account
+          example: account
+        customer_details:
+          oneOf:
+          - $ref: "#/components/schemas/ContactResponse"
+          - $ref: "#/components/schemas/AccountResponse"
+
+    ContactResponse:
+      type: object
+      description: Contact information of a private person
+      required:
+        - first_name
+        - last_name
+      properties:
+        id:
+          description: Unique id of a contact
+          type: integer
+          format: int64
+          example: 3421
+        salutation:
+          $ref: "#/components/schemas/SalutationResponse"
+        first_name:
+          description: First name of a contact
+          type: string
+          example: John
+        last_name:
+          description: Last name of a contact
+          type: string
+          example: Doe
+        customer_number:
+          description: Customer number
+          type: string
+          example: CUST-0239281
+        notes:
+          description: Additional notes on a contact
+          type: string
+          example: Notes added to a contact entry
+        email_addresses:
+          description: Email addresses of a contact
+          type: array
+          items:
+            $ref: '#/components/schemas/EmailAddressResponse'
+        phone_numbers:
+          description: Phone numbers of a contact
+          type: array
+          items:
+            $ref: '#/components/schemas/PhoneNumberResponse'
+        addresses:
+          description: Addresses of a contact
+          type: array
+          items:
+            $ref: '#/components/schemas/AddressResponse'
+
+    AccountResponse:
+      type: object
+      description: Account information of a business, for example.
+      required:
+        - account_name
+      properties:
+        id:
+          description: Unique id of the account
+          type: integer
+          format: int64
+          example: 3421
+        account_name:
+          description: Name of the account
+          type: string
+          example: ABC Company Ltd.
+        contacts:
+          type: array
+          items:
+            $ref: '#/components/schemas/ContactResponse'
+        customer_number:
+          description: Customer number
+          type: string
+          example: BUS-0239281
+        notes:
+          description: Additional notes for an account.
+          type: string
+          example: This is a very important business account.
+        email_addresses:
+          description: Email addresses of an account
+          type: array
+          items:
+            $ref: '#/components/schemas/EmailAddressResponse'
+        phone_numbers:
+          description: Phone numbers of an account
+          type: array
+          items:
+            $ref: '#/components/schemas/PhoneNumberResponse'
+        addresses:
+          description: Addresses of an account
+          type: array
+          items:
+            $ref: '#/components/schemas/AddressResponse'
+
+    AddressResponse:
+      type: object
+      properties:
+        address_name:
+          type: string
+          example: Primary address
+        is_primary_delivery:
+          type: boolean
+          example: 1
+        is_primary_billing:
+          type: boolean
+          example: 1
+        geodata:
+          $ref: "#/components/schemas/GeodataResponse"
+
+    ProductPackageResponse:
+      type: object
+      description: Product package definition.
+      properties:
+        id:
+          description: Id of the opportunity package.
+          type: integer
+          format: int64
+          example: 23782
+        name:
+          type: string
+          example: Standard package Medium.
+        owner:
+          type: string
+          example: Energy Plus Ltd.
+        product_category:
+          $ref: '#/components/schemas/ProductCategoryResponse'
+        product_type:
+          type: string
+          description: The type of a product package, which can be a standard product package or an individually priced product package.
+          example: STANDARD
+          enum:
+            - STANDARD
+            - INDIVIDUAL
+
+    AddOnResponse:
+      type: object
+      description: Add-On definition.
+      properties:
+        name:
+          type: string
+          example: Annual service charge.
+
+    IndividualAdjustmentResponse:
+      type: object
+      description: Individual pricing adjustment of the opportunity pricing items.
+      properties:
+        name:
+          type: string
+          example: Additional charges for unexpected carrier load.
+
+    DateResponse:
+      type: object
+      properties:
+        label:
+          type: string
+          example: Installation date
+        date:
+          type: string
+          format: date
+          example: '2019-08-01'
+
+    SalutationResponse:
+      type: string
+      description: The title used to address a contact.
+      example: mr
+      enum:
+        - mr
+        - mrs
+        - other
+
+    EmailAddressResponse:
+      type: object
+      properties:
+        label:
+          type: string
+          example: Primary email address
+        email:
+          type: string
+          example: info@email.com
+
+    PhoneNumberResponse:
+      type: object
+      properties:
+        label:
+          type: string
+          example: Primary phone
+        number:
+          type: string
+          example: +49 (0)171 82387237
+
+    ProductCategoryResponse:
+      type: string
+      description: The general category of a product package.
+      example: HOUSE_CONNECTION_ELECTRICITY
+      enum:
+            - SOLAR
+            - STORAGE
+            - CHARGING
+            - POWER
+            - HEATING
+            - CHP
+            - HEAT_PUMP
+            - CAR_SHARING
+            - HOUSE_CONNECTION_ELECTRICITY
+            - HOUSE_CONNECTION_GAS
+            - HOUSE_CONNECTION_WATER
+            - HOUSE_CONNECTION_HEATING
+            - HOUSE_CONNECTION_BROADBAND
+
+    GeodataResponse:
+      type: object
+      properties:
+        postcode:
+          type: string
+          example: 50674
+        city:
+          type: string
+          example: Cologne
+        street_name:
+          type: string
+          example: Moltkestr.
+        street_number:
+          type: string
+          example: 123
+        additional_details:
+          type: string
+          example: Eingang C
+        country_code:
+          type: string
+          example: DE
+        register:
+          $ref: "#/components/schemas/LotResponse"
+        geomtry:
+          $ref: "#/components/schemas/CoordinatesResponse"
+
+    LotResponse:
+      type: object
+      properties:
+        district:
+          type: string
+          example: Köln-Neustadt-Nord
+        lot:
+          type: string
+          example: 32
+        lot_number:
+          type: string
+          example: 12/2
+    CoordinatesResponse:
+      type: object
+      properties:
+        lat:
+          type: number
+          format: double
+          example: 37.4224764
+        lng:
+          type: number
+          format: double
+          example: -122.0842499
+
+    OpportunityCustomLabel:
+      type: object
+      description: Opportunity custom date label
+      required:
+        - label
+      properties:
+        label:
+          description: Custom date label
+          type: string
+          example: Installation date
+
+    OpportunityCustomDate:
+      type: object
+      description: Opportunity custom date
+      properties:
+        label:
+          description: Custom date label
+          type: string
+          example: null
+        date:
+          description: Date value
+          type: string
+          format: date-time
+          example: '2019-07-21T17:32:28Z'
+    OpportunityPackageCustomField:
+      type: object
+      description: Opportunity package custom field
+      required:
+        - key
+      properties:
+        key:
+          description: Custom field's key
+          type: string
+          example: debtor_number
+        value:
+          description: Custom field's value
+          type: string
+          example: DB-1237129812837               
+
+  responses:
+    BadRequest:
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error:
+              message: Missing Organization-Id parameter!
+              type: invalid_request
+              code: 4000
+    Unauthorized:
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error:
+              message: Unauthorized
+              type: authentication_failed
+              code: 4010
+    NotFound:
+      description: The specified resource was not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error:
+              message: Not found
+              type: not_found
+              code: 4040
+    InternalError:
+      description: Internal error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error:
+              message: The service is not available
+              type: internal_server_error
+              code: 5000
